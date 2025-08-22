@@ -16,9 +16,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-      with:
-        repository: flathub/io.freetubeapp.FreeTube
-        token: ${{ secrets.FLATHUB_TOKEN }}
+      # Only check out the current repository, not Flathub
     - name: Get Repo Release List
       uses: moustacheful/github-api-exec-action@v0
       id: list_results
@@ -41,10 +39,7 @@ jobs:
         _input-text: ${{ fromJson(steps.list_results.outputs.result)[0].tag_name }}
         -beta: ''
         v: ''
-    - name: Create Release Branch
-      run: |
-        git checkout -b release-v${{ steps.sub.outputs.result }}
-        git push --set-upstream origin release-v${{ steps.sub.outputs.result }}
+  # Skipping creation and pushing of release branch to Flathub
     - name: Download x64 Release
       uses: fabriciobastian/download-release-asset-action@v1.0.6
       with:
@@ -101,22 +96,5 @@ jobs:
       run: |
         rm freetube-${{ steps.sub.outputs.result }}-beta-linux-x64-portable.zip
         rm freetube-${{ steps.sub.outputs.result }}-beta-linux-arm64-portable.zip
-    - name: Commit Files
-      uses: stefanzweifel/git-auto-commit-action@v6
-      with:
-        # Optional but recommended
-        # Defaults to "Apply automatic changes"
-        commit_message: Update files for v${{ steps.sub.outputs.result }}
-
-        # Optional options appended to `git-commit`
-        # See https://git-scm.com/docs/git-commit for a list of available options
-        commit_options: '--no-verify --signoff'
-
-        # Optional: Disable dirty check and always try to create a commit and push
-        skip_dirty_check: true
-    - name: Create PR
-      run: |
-        echo ${{ secrets.FLATHUB_TOKEN }} >> auth.txt
-        gh auth login --with-token < auth.txt
-        rm auth.txt
-        gh pr create --title "Release v${{ steps.sub.outputs.result }}" --body "This is an automated PR for the v${{ steps.sub.outputs.result }} release. This PR will be updated and merged once testing is complete."
+  # Skipping auto-commit and push to Flathub
+  # Skipping PR creation to Flathub
