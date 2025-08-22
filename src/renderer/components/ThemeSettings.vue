@@ -98,16 +98,15 @@ import { computed, ref } from 'vue'
 import { useI18n } from '../composables/use-i18n-polyfill'
 
 import FtSettingsSection from './FtSettingsSection/FtSettingsSection.vue'
-import FtSelect from './ft-select/ft-select.vue'
-import FtToggleSwitch from './ft-toggle-switch/ft-toggle-switch.vue'
-import FtSlider from './ft-slider/ft-slider.vue'
+import FtSelect from './FtSelect/FtSelect.vue'
+import FtToggleSwitch from './FtToggleSwitch/FtToggleSwitch.vue'
+import FtSlider from './FtSlider/FtSlider.vue'
 import FtFlexBox from './ft-flex-box/ft-flex-box.vue'
 import FtPrompt from './FtPrompt/FtPrompt.vue'
 
 import store from '../store/index'
 
 import { colors } from '../helpers/colors'
-import { IpcChannels } from '../../constants'
 import { useColorTranslations } from '../composables/colors'
 
 const { t } = useI18n()
@@ -131,6 +130,12 @@ const BASE_THEME_VALUES = [
   'catppuccinFrappe',
   'catppuccinMocha',
   'dracula',
+  'everforestDarkHard',
+  'everforestDarkMedium',
+  'everforestDarkLow',
+  'everforestLightHard',
+  'everforestLightMedium',
+  'everforestLightLow',
   'gruvboxDark',
   'gruvboxLight',
   'solarizedDark',
@@ -151,6 +156,12 @@ const baseThemeNames = computed(() => [
   t('Settings.Theme Settings.Base Theme.Catppuccin Frappe'),
   t('Settings.Theme Settings.Base Theme.Catppuccin Mocha'),
   t('Settings.Theme Settings.Base Theme.Dracula'),
+  t('Settings.Theme Settings.Base Theme.Everforest Dark Hard'),
+  t('Settings.Theme Settings.Base Theme.Everforest Dark Medium'),
+  t('Settings.Theme Settings.Base Theme.Everforest Dark Low'),
+  t('Settings.Theme Settings.Base Theme.Everforest Light Hard'),
+  t('Settings.Theme Settings.Base Theme.Everforest Light Medium'),
+  t('Settings.Theme Settings.Base Theme.Everforest Light Low'),
   t('Settings.Theme Settings.Base Theme.Gruvbox Dark'),
   t('Settings.Theme Settings.Base Theme.Gruvbox Light'),
   t('Settings.Theme Settings.Base Theme.Solarized Dark'),
@@ -305,8 +316,7 @@ function handleSmoothScrolling(value) {
     store.dispatch('updateDisableSmoothScrolling',
       disableSmoothScrollingToggleValue.value
     ).then(() => {
-      const { ipcRenderer } = require('electron')
-      ipcRenderer.send(IpcChannels.RELAUNCH_REQUEST)
+      window.ftElectron.relaunch()
     })
   }
 }

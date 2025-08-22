@@ -2,13 +2,13 @@ import { defineComponent } from 'vue'
 import { mapActions, mapMutations } from 'vuex'
 import shaka from 'shaka-player'
 import { Utils, YTNodes } from 'youtubei.js'
-import FtLoader from '../../components/ft-loader/ft-loader.vue'
+import FtLoader from '../../components/FtLoader/FtLoader.vue'
 import FtShakaVideoPlayer from '../../components/ft-shaka-video-player/ft-shaka-video-player.vue'
 import WatchVideoInfo from '../../components/watch-video-info/watch-video-info.vue'
 import WatchVideoChapters from '../../components/WatchVideoChapters/WatchVideoChapters.vue'
 import WatchVideoDescription from '../../components/WatchVideoDescription/WatchVideoDescription.vue'
 import CommentSection from '../../components/CommentSection/CommentSection.vue'
-import WatchVideoLiveChat from '../../components/watch-video-live-chat/watch-video-live-chat.vue'
+import WatchVideoLiveChat from '../../components/WatchVideoLiveChat/WatchVideoLiveChat.vue'
 import WatchVideoPlaylist from '../../components/watch-video-playlist/watch-video-playlist.vue'
 import WatchVideoRecommendations from '../../components/WatchVideoRecommendations/WatchVideoRecommendations.vue'
 import FtAgeRestricted from '../../components/FtAgeRestricted/FtAgeRestricted.vue'
@@ -56,7 +56,7 @@ export default defineComponent({
   },
   beforeRouteLeave: async function (to, from, next) {
     this.handleRouteChange()
-    window.removeEventListener('beforeunload', this.handleWatchProgress)
+    window.removeEventListener('beforeunload', this.handleWatchProgressAutoSave)
     document.removeEventListener('keydown', this.resetAutoplayInterruptionTimeout)
     document.removeEventListener('click', this.resetAutoplayInterruptionTimeout)
 
@@ -130,6 +130,7 @@ export default defineComponent({
       infoAreaSticky: true,
       blockVideoAutoplay: false,
       autoplayInterruptionTimeout: null,
+      playabilityStatus: '',
 
       onMountedRun: false,
 
@@ -154,8 +155,11 @@ export default defineComponent({
     rememberHistory: function () {
       return this.$store.getters.getRememberHistory
     },
-    saveWatchedProgress: function () {
-      return this.$store.getters.getSaveWatchedProgress
+    watchedProgressSavingEnabled: function () {
+      return this.$store.getters.getWatchedProgressSavingMode !== 'never'
+    },
+    autosaveWatchedProgress: function () {
+      return this.$store.getters.getWatchedProgressSavingMode === 'auto'
     },
     saveVideoHistoryWithLastViewedPlaylist: function () {
       return this.$store.getters.getSaveVideoHistoryWithLastViewedPlaylist
@@ -266,7 +270,7 @@ export default defineComponent({
 
       if (this.timestamp !== null && this.timestamp < this.videoLengthSeconds) {
         return this.timestamp
-      } else if (this.saveWatchedProgress && this.historyEntryExists) {
+      } else if (this.watchedProgressSavingEnabled && this.historyEntryExists) {
         // For UX consistency, no progress reading if writing disabled
 
         /** @type {number} */
@@ -278,7 +282,14 @@ export default defineComponent({
       }
 
       return null
-    }
+    },
+
+    canSaveWatchProgress() {
+      if (this.isUpcoming || this.isLive) { return false }
+
+      // `this.$refs.player?.hasLoaded` cannot be used in computed property
+      return !this.isLoading
+    },
   },
   watch: {
     async $route() {
@@ -357,7 +368,7 @@ export default defineComponent({
       document.addEventListener('keydown', this.resetAutoplayInterruptionTimeout)
       document.addEventListener('click', this.resetAutoplayInterruptionTimeout)
 
-      window.addEventListener('beforeunload', this.handleWatchProgress)
+      window.addEventListener('beforeunload', this.handleWatchProgressAutoSave)
       this.resetAutoplayInterruptionTimeout()
     },
 
@@ -496,7 +507,9 @@ export default defineComponent({
 
         let chapters = []
         if (!this.hideChapters) {
-          const rawChapters = result.player_overlays?.decorated_player_bar?.player_bar?.markers_map?.get({ marker_key: 'DESCRIPTION_CHAPTERS' })?.value.chapters
+          const rawChapters = result.player_overlays?.decorated_player_bar?.player_bar?.markers_map
+            ?.find(marker => marker.marker_key === 'DESCRIPTION_CHAPTERS')?.value.chapters
+
           if (rawChapters) {
             for (const chapter of rawChapters) {
               const start = chapter.time_range_start_millis / 1000
@@ -546,6 +559,7 @@ export default defineComponent({
         this.videoChapters = chapters
 
         const playabilityStatus = result.playability_status
+        this.playabilityStatus = playabilityStatus.status
 
         // The apostrophe is intentionally that one (char code 8217), because that is the one YouTube uses
         const BOT_MESSAGE = 'Sign in to confirm you’re not a bot'
@@ -687,7 +701,9 @@ export default defineComponent({
             this.upcomingTimeLeft = null
             this.premiereDate = undefined
           }
-        } else {
+        }
+
+        if ((!this.isUpcoming && !this.isLive && !this.isPostLiveDvr) || (this.isUpcoming && this.playabilityStatus === 'OK')) {
           this.videoLengthSeconds = result.basic_info.duration
           if (result.streaming_data) {
             this.streamingDataExpiryDate = result.streaming_data.expires
@@ -717,7 +733,7 @@ export default defineComponent({
                 }
 
                 downloadLinks.push({
-                  url: format.freeTubeUrl,
+                  value: `${type}||${format.freeTubeUrl}`,
                   label: label
                 })
               }
@@ -769,7 +785,7 @@ export default defineComponent({
                 const label = `${caption.label} (${caption.language}) - text/vtt`
 
                 return {
-                  url: caption.url,
+                  value: `${caption.mimeType}||${caption.url}`,
                   label: label
                 }
               })
@@ -993,7 +1009,7 @@ export default defineComponent({
                 }
               }
               const object = {
-                url: format.url,
+                value: `${type}||${format.url}`,
                 label: label
               }
 
@@ -1001,7 +1017,7 @@ export default defineComponent({
             }).reverse().concat(result.captions.map((caption) => {
               const label = `${caption.label} (${caption.languageCode}) - text/vtt`
               const object = {
-                url: caption.url,
+                value: `text/vtt||${caption.url}`,
                 label: label
               }
 
@@ -1128,16 +1144,29 @@ export default defineComponent({
       this.updateHistory(videoData)
     },
 
-    handleWatchProgress: function () {
-      if (this.rememberHistory && this.saveWatchedProgress && !this.isUpcoming &&
-        !this.isLoading && !this.isLive && this.$refs.player?.hasLoaded) {
-        const currentTime = this.getWatchedProgress()
-        const payload = {
-          videoId: this.videoId,
-          watchProgress: currentTime
-        }
-        this.updateWatchProgress(payload)
+    handleWatchProgressManualSave() {
+      // Should be called by manual action, settings should be checked in UI
+      this._saveWatchProgress()
+      showToast(this.$t('Video.Watched Progress Saved'))
+    },
+    handleWatchProgressAutoSave() {
+      if (!this.rememberHistory || !this.autosaveWatchedProgress) { return }
+      this._saveWatchProgress()
+    },
+    handleWatchProgressAutoSaveWhenProgressEnabled() {
+      if (!this.rememberHistory || !this.watchedProgressSavingEnabled) { return }
+      this._saveWatchProgress()
+    },
+    _saveWatchProgress() {
+      if (!this.canSaveWatchProgress) { return }
+      if (!this.$refs.player?.hasLoaded) { return }
+
+      const currentTime = this.getWatchedProgress()
+      const payload = {
+        videoId: this.videoId,
+        watchProgress: currentTime
       }
+      this.updateWatchProgress(payload)
     },
 
     handlePlaylistPersisting: function () {
@@ -1160,7 +1189,8 @@ export default defineComponent({
 
     handleVideoLoaded: function () {
       // will trigger again if you switch formats or change legacy quality
-      if (!this.videoPlayerLoaded) {
+      // Check isUpcoming to avoid marking upcoming videos as watched if the user has only watched the trailer
+      if (!this.videoPlayerLoaded && !this.isUpcoming) {
         this.videoPlayerLoaded = true
 
         if (this.rememberHistory) {
@@ -1289,6 +1319,7 @@ export default defineComponent({
     },
 
     handleVideoEnded: function () {
+      this.handleWatchProgressAutoSaveWhenProgressEnabled()
       if (!this.autoplayEnabled) {
         return
       }
@@ -1358,6 +1389,24 @@ export default defineComponent({
       this.playNextCountDownIntervalId = setInterval(showCountDownMessage, 1000)
     },
 
+    // Skip to the next video if in a playlist
+    // else next recommended video if autoplay enabled
+    handleSkipToNext: function () {
+      if (this.watchingPlaylist) {
+        this.$refs.watchVideoPlaylist?.playNextVideo()
+      } else if (!this.hideRecommendedVideos && this.nextRecommendedVideo) {
+        this.$router.push({
+          path: `/watch/${this.nextRecommendedVideo.videoId}`
+        })
+        showToast(this.$t('Playing Next Video'))
+      }
+    },
+
+    // Skip to the previous video in a playlist
+    handleSkipToPrev: function () {
+      this.$refs.watchVideoPlaylist?.playPreviousVideo()
+    },
+
     abortAutoplayCountdown: function (hideToast = false) {
       clearTimeout(this.playNextTimeout)
       clearInterval(this.playNextCountDownIntervalId)
@@ -1373,7 +1422,7 @@ export default defineComponent({
       this.videoChapters = []
       this.videoChaptersKind = 'chapters'
 
-      this.handleWatchProgress()
+      this.handleWatchProgressAutoSave()
     },
 
     /**
@@ -1393,12 +1442,12 @@ export default defineComponent({
       } else if (error.code === Code.BAD_HTTP_STATUS) {
         switch (error.data[1]) {
           case 429:
-            this.handleWatchProgress()
+            this.handleWatchProgressAutoSaveWhenProgressEnabled()
 
             this.errorMessage = '[BAD_HTTP_STATUS: 429] Ratelimited'
             return
           case 403:
-            this.handleWatchProgress()
+            this.handleWatchProgressAutoSaveWhenProgressEnabled()
 
             if (new Date() > this.streamingDataExpiryDate) {
               this.errorMessage = '[BAD_HTTP_STATUS: 403] YouTube watch session expired. Please reopen this video.'
@@ -1416,7 +1465,7 @@ export default defineComponent({
       } else if (error.code === Code.VIDEO_ERROR) {
         if (this.activeFormat === 'legacy') {
           if (new Date() > this.streamingDataExpiryDate) {
-            this.handleWatchProgress()
+            this.handleWatchProgressAutoSaveWhenProgressEnabled()
 
             this.errorMessage = '[VIDEO_ERROR] YouTube watch session expired. Please reopen this video.'
             this.customErrorIcon = ['fas', 'clock']

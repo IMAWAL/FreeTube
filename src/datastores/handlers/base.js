@@ -38,6 +38,16 @@ class Settings {
       await db.settings.removeAsync({ _id: 'defaultTheatreMode' })
     }
 
+    const saveWatchedProgress = await db.settings.findOneAsync({ _id: 'saveWatchedProgress' })
+    const watchedProgressSavingMode = await db.settings.findOneAsync({ _id: 'watchedProgressSavingMode' })
+    if (saveWatchedProgress && !watchedProgressSavingMode) {
+      if (!saveWatchedProgress.value) {
+        await this.upsert('watchedProgressSavingMode', 'never')
+      }
+
+      await db.settings.removeAsync({ _id: 'saveWatchedProgress' })
+    }
+
     return db.settings.findAsync({ _id: { $ne: 'bounds' } })
   }
 
@@ -54,17 +64,14 @@ class Settings {
         { _id: 'useProxy' },
         { _id: 'proxyProtocol' },
         { _id: 'proxyHostname' },
-        { _id: 'proxyPort' }
+        { _id: 'proxyPort' },
+        { _id: 'hideToTrayOnMinimize' }
       ]
     })
   }
 
-  static _findBounds() {
-    return db.settings.findOneAsync({ _id: 'bounds' })
-  }
-
-  static _findTheme() {
-    return db.settings.findOneAsync({ _id: 'baseTheme' })
+  static _findOne(_id) {
+    return db.settings.findOneAsync({ _id })
   }
 
   static _findSidenavSettings() {
@@ -75,10 +82,6 @@ class Settings {
       backendPreference: db.settings.findOneAsync({ _id: 'backendPreference' }),
       hidePlaylists: db.settings.findOneAsync({ _id: 'hidePlaylists' }),
     }
-  }
-
-  static _findScreenshotFolderPath() {
-    return db.settings.findOneAsync({ _id: 'screenshotFolderPath' })
   }
 
   static _updateBounds(value) {
@@ -180,18 +183,24 @@ class Playlists {
     return db.playlists.updateAsync({ _id: playlist._id }, { $set: playlist }, { upsert: true })
   }
 
-  static upsertVideoByPlaylistId(_id, videoData) {
+  static upsertVideoByPlaylistId(_id, lastUpdatedAt, videoData) {
     return db.playlists.updateAsync(
       { _id },
-      { $push: { videos: videoData } },
+      {
+        $push: { videos: videoData },
+        $set: { lastUpdatedAt }
+      },
       { upsert: true }
     )
   }
 
-  static upsertVideosByPlaylistId(_id, videos) {
+  static upsertVideosByPlaylistId(_id, lastUpdatedAt, videos) {
     return db.playlists.updateAsync(
       { _id },
-      { $push: { videos: { $each: videos } } },
+      {
+        $push: { videos: { $each: videos } },
+        $set: { lastUpdatedAt }
+      },
       { upsert: true }
     )
   }
@@ -200,17 +209,23 @@ class Playlists {
     return db.playlists.removeAsync({ _id, protected: { $ne: true } })
   }
 
-  static deleteVideoIdByPlaylistId(_id, videoId, playlistItemId) {
+  static deleteVideoIdByPlaylistId(_id, lastUpdatedAt, videoId, playlistItemId) {
     if (playlistItemId != null) {
       return db.playlists.updateAsync(
         { _id },
-        { $pull: { videos: { playlistItemId } } },
+        {
+          $pull: { videos: { playlistItemId } },
+          $set: { lastUpdatedAt }
+        },
         { upsert: true }
       )
     } else if (videoId != null) {
       return db.playlists.updateAsync(
         { _id },
-        { $pull: { videos: { videoId } } },
+        {
+          $pull: { videos: { videoId } },
+          $set: { lastUpdatedAt }
+        },
         { upsert: true }
       )
     } else {
@@ -218,10 +233,13 @@ class Playlists {
     }
   }
 
-  static deleteVideoIdsByPlaylistId(_id, playlistItemIds) {
+  static deleteVideoIdsByPlaylistId(_id, lastUpdatedAt, playlistItemIds) {
     return db.playlists.updateAsync(
       { _id },
-      { $pull: { videos: { playlistItemId: { $in: playlistItemIds } } } },
+      {
+        $pull: { videos: { playlistItemId: { $in: playlistItemIds } } },
+        $set: { lastUpdatedAt }
+      },
       { upsert: true }
     )
   }
@@ -340,6 +358,17 @@ class SubscriptionCache {
   }
 }
 
+function loadDatastores() {
+  return Promise.allSettled([
+    db.settings.loadDatabaseAsync(),
+    db.history.loadDatabaseAsync(),
+    db.profiles.loadDatabaseAsync(),
+    db.playlists.loadDatabaseAsync(),
+    db.searchHistory.loadDatabaseAsync(),
+    db.subscriptionCache.loadDatabaseAsync(),
+  ])
+}
+
 function compactAllDatastores() {
   return Promise.allSettled([
     db.settings.compactDatafileAsync(),
@@ -359,5 +388,6 @@ export {
   SearchHistory as searchHistory,
   SubscriptionCache as subscriptionCache,
 
+  loadDatastores,
   compactAllDatastores,
 }

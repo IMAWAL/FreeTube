@@ -1,11 +1,11 @@
 import { defineComponent } from 'vue'
 import { mapActions, mapMutations } from 'vuex'
 import FtSettingsSection from '../FtSettingsSection/FtSettingsSection.vue'
-import FtSelect from '../ft-select/ft-select.vue'
+import FtSelect from '../FtSelect/FtSelect.vue'
 import FtInput from '../ft-input/ft-input.vue'
-import FtToggleSwitch from '../ft-toggle-switch/ft-toggle-switch.vue'
+import FtToggleSwitch from '../FtToggleSwitch/FtToggleSwitch.vue'
 import FtFlexBox from '../ft-flex-box/ft-flex-box.vue'
-import FtButton from '../ft-button/ft-button.vue'
+import FtButton from '../FtButton/FtButton.vue'
 
 import allLocales from '../../../../static/locales/activeLocales.json'
 import { debounce, randomArrayItem, showToast } from '../../helpers/utils'
@@ -23,6 +23,7 @@ export default defineComponent({
   },
   data: function () {
     return {
+      usingElectron: process.env.IS_ELECTRON,
       backendValues: process.env.SUPPORTS_LOCAL_API
         ? [
             'invidious',
@@ -56,7 +57,8 @@ export default defineComponent({
         'userPlaylists',
         'history',
         'settings'
-      ]
+      ],
+      isMac: process.platform === 'darwin'
     }
   },
   computed: {
@@ -134,6 +136,9 @@ export default defineComponent({
     regionValues: function () {
       return this.$store.getters.getRegionValues
     },
+    regionDataLoaded: function () {
+      return this.regionValues.length > 0
+    },
     invidiousInstancesList: function () {
       return this.$store.getters.getInvidiousInstancesList
     },
@@ -203,7 +208,12 @@ export default defineComponent({
 
     openDeepLinksInNewWindow: function () {
       return this.$store.getters.getOpenDeepLinksInNewWindow
-    }
+    },
+
+    hideToTrayOnMinimize: function () {
+      return this.$store.getters.getHideToTrayOnMinimize
+    },
+
   },
   created: function () {
     this.setCurrentInvidiousInstanceBounce =
@@ -273,6 +283,7 @@ export default defineComponent({
       'updateExternalLinkHandling',
       'updateGeneralAutoLoadMorePaginatedItemsEnabled',
       'updateOpenDeepLinksInNewWindow',
+      'updateHideToTrayOnMinimize',
     ])
   }
 })

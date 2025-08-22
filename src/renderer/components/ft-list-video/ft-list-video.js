@@ -128,7 +128,7 @@ export default defineComponent({
     },
 
     watchProgress: function () {
-      if (!this.historyEntryExists || !this.saveWatchedProgress) {
+      if (!this.historyEntryExists || !this.watchedProgressSavingEnabled) {
         return 0
       }
 
@@ -231,11 +231,11 @@ export default defineComponent({
     },
 
     progressPercentage: function () {
-      if (typeof this.lengthSeconds !== 'number') {
+      if (typeof this.lengthSeconds !== 'number' || this.lengthSeconds === 0) {
         return 0
       }
-
-      return (this.watchProgress / this.lengthSeconds) * 100
+      const percentage = (this.watchProgress / this.lengthSeconds) * 100
+      return Math.min(percentage, 100)
     },
 
     hideSharingActions: function() {
@@ -388,8 +388,11 @@ export default defineComponent({
       return this.$store.getters.getDefaultPlayback
     },
 
-    saveWatchedProgress: function () {
-      return this.$store.getters.getSaveWatchedProgress
+    watchedProgressSavingEnabled: function () {
+      return ['auto', 'semi-auto'].includes(this.$store.getters.getWatchedProgressSavingMode)
+    },
+    rememberHistory: function () {
+      return this.$store.getters.getRememberHistory
     },
 
     saveVideoHistoryWithLastViewedPlaylist: function () {
@@ -639,7 +642,7 @@ export default defineComponent({
       }
       this.openInExternalPlayer(payload)
 
-      if (this.saveWatchedProgress && !this.historyEntryExists) {
+      if (this.rememberHistory) {
         this.markAsWatched()
       }
     },
@@ -771,7 +774,10 @@ export default defineComponent({
         type: 'video'
       }
       this.updateHistory(videoData)
-      showToast(this.$t('Video.Video has been marked as watched'))
+
+      if (!this.historyEntryExists) {
+        showToast(this.$t('Video.Video has been marked as watched'))
+      }
     },
 
     removeFromWatched: function () {
@@ -846,8 +852,6 @@ export default defineComponent({
         _id: this.quickBookmarkPlaylist._id,
         videoData,
       })
-      // Update playlist's `lastUpdatedAt`
-      this.updatePlaylist({ _id: this.quickBookmarkPlaylist._id })
 
       // TODO: Maybe show playlist name
       showToast(this.$t('Video.Video has been saved'))
@@ -858,22 +862,20 @@ export default defineComponent({
         // Remove all playlist items with same videoId
         videoId: this.id,
       })
-      // Update playlist's `lastUpdatedAt`
-      this.updatePlaylist({ _id: this.quickBookmarkPlaylist._id })
 
       // TODO: Maybe show playlist name
       showToast(this.$t('Video.Video has been removed from your saved list'))
     },
     moveVideoUp: function() {
-      this.$emit('move-video-up')
+      this.$emit('move-video-up', this.id, this.playlistItemId)
     },
 
     moveVideoDown: function() {
-      this.$emit('move-video-down')
+      this.$emit('move-video-down', this.id, this.playlistItemId)
     },
 
     removeFromPlaylist: function() {
-      this.$emit('remove-from-playlist')
+      this.$emit('remove-from-playlist', this.id, this.playlistItemId)
     },
 
     ...mapActions([
@@ -883,7 +885,6 @@ export default defineComponent({
       'updateChannelsHidden',
       'showAddToPlaylistPromptForManyVideos',
       'addVideo',
-      'updatePlaylist',
       'removeVideo',
     ])
   }

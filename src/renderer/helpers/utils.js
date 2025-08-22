@@ -1,4 +1,3 @@
-import { IpcChannels } from '../../constants'
 import i18n from '../i18n/index'
 import router from '../router/index'
 import { nextTick } from 'vue'
@@ -214,16 +213,7 @@ export async function copyToClipboard(content, { messageOnSuccess = null, messag
  * @param {string} url the URL to open
  */
 export async function openExternalLink(url) {
-  if (process.env.IS_ELECTRON) {
-    const ipcRenderer = require('electron').ipcRenderer
-    const success = await ipcRenderer.invoke(IpcChannels.OPEN_EXTERNAL_LINK, url)
-
-    if (!success) {
-      showToast(i18n.t('Blocked opening potentially unsafe URL', { url }))
-    }
-  } else {
-    window.open(url, '_blank')
-  }
+  window.open(url, '_blank', 'noreferrer')
 }
 
 /**
@@ -237,9 +227,7 @@ export async function openExternalLink(url) {
  */
 export function openInternalPath({ path, query = undefined, doCreateNewWindow, searchQueryText = null }) {
   if (process.env.IS_ELECTRON && doCreateNewWindow) {
-    const { ipcRenderer } = require('electron')
-
-    ipcRenderer.send(IpcChannels.CREATE_NEW_WINDOW, path, query, searchQueryText)
+    window.ftElectron.openInNewWindow(path, query, searchQueryText)
   } else {
     router.push({
       path,
@@ -298,8 +286,8 @@ export async function readFileWithPicker(
         .join(',')
 
       const fileInput = document.createElement('input')
-      fileInput.setAttribute('type', 'file')
-      fileInput.setAttribute('accept', joinedExtensions)
+      fileInput.type = 'file'
+      fileInput.accept = joinedExtensions
       fileInput.onchange = () => {
         resolve(fileInput.files[0])
         fileInput.onchange = null
@@ -398,8 +386,8 @@ export async function writeFileWithPicker(
     const url = URL.createObjectURL(content)
 
     const downloadLink = document.createElement('a')
-    downloadLink.setAttribute('download', encodeURIComponent(fileName))
-    downloadLink.setAttribute('href', url)
+    downloadLink.download = encodeURIComponent(fileName)
+    downloadLink.href = url
     downloadLink.click()
 
     // Small timeout to give the browser time to react to the click on the link
@@ -408,36 +396,6 @@ export async function writeFileWithPicker(
     }, 1000)
 
     return true
-  }
-}
-
-/**
- * @param {{defaultPath: string, filters: {name: string, extensions: string[]}[]}} options
- * @returns { Promise<import('electron').SaveDialogReturnValue> | {canceled: boolean?, filePath: string } | { canceled: boolean?, handle?: Promise<FileSystemFileHandle> }}
- */
-export async function showSaveDialog (options) {
-  if (process.env.IS_ELECTRON) {
-    const { ipcRenderer } = require('electron')
-    return await ipcRenderer.invoke(IpcChannels.SHOW_SAVE_DIALOG, options)
-  } else {
-    // If the native filesystem api is available
-    if ('showSaveFilePicker' in window) {
-      return {
-        canceled: false,
-        handle: await window.showSaveFilePicker({
-          suggestedName: options.defaultPath.split('/').at(-1),
-          types: options.filters[0]?.extensions?.map((extension) => {
-            return {
-              accept: {
-                'application/octet-stream': '.' + extension
-              }
-            }
-          })
-        })
-      }
-    } else {
-      return { canceled: false, filePath: options.defaultPath }
-    }
   }
 }
 
@@ -573,8 +531,7 @@ export function replaceFilenameForbiddenChars(filenameOriginal) {
 export async function getSystemLocale() {
   let locale
   if (process.env.IS_ELECTRON) {
-    const { ipcRenderer } = require('electron')
-    locale = await ipcRenderer.invoke(IpcChannels.GET_SYSTEM_LOCALE)
+    locale = await window.ftElectron.getSystemLocale()
   } else {
     if (navigator && navigator.language) {
       locale = navigator.language
@@ -582,15 +539,6 @@ export async function getSystemLocale() {
   }
 
   return locale || 'en-US'
-}
-
-export async function getPicturesPath() {
-  if (process.env.IS_ELECTRON) {
-    const { ipcRenderer } = require('electron')
-    return await ipcRenderer.invoke(IpcChannels.GET_PICTURES_PATH)
-  } else {
-    return null
-  }
 }
 
 export function extractNumberFromString(str) {
@@ -1053,5 +1001,30 @@ export function debounce(func, wait) {
       timeout = null
       func.apply(context, args)
     }, wait)
+  }
+}
+
+/**
+ * @template {Function} T
+ * @param {T} func
+ * @param {number} wait
+ * @returns {T}
+ */
+export function throttle(func, wait) {
+  let isWaiting
+
+  // Using a fully fledged function here instead of an arrow function
+  // so that we can get `this` and pass it onto the original function.
+  // Vue components using the options API use `this` alot.
+  return function (...args) {
+    const context = this
+    if (!isWaiting) {
+      func.apply(context, args)
+
+      isWaiting = true
+      setTimeout(() => {
+        isWaiting = false
+      }, wait)
+    }
   }
 }
