@@ -127,7 +127,7 @@ const SyncEvents = {
 }
 
 /*
-  DEV NOTE: Duplicate any and all changes made here to our [official documentation site here](https://github.com/FreeTubeApp/FreeTube-Docs/blob/master/usage/keyboard-shortcuts.md)
+  DEV NOTE: Duplicate any and all changes made here to our [official documentation site here](https://github.com/IMAWAL/Freetube-Docs/blob/master/usage/keyboard-shortcuts.md)
   to have them reflect on the [keyboard shortcut reference webpage](https://docs.freetubeapp.io/usage/keyboard-shortcuts).
   Please also update the [keyboard shortcut modal](src/renderer/components/FtKeyboardShortcutPrompt/FtKeyboardShortcutPrompt.vue)
 */

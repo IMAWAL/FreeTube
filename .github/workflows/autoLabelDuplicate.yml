@@ -9,8 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check Comment Author
-        uses: Amwam/issue-comment-action@v1.3.1
+        uses: Amwam/issue-comment-action@v1.5.0
         with:
-          keywords: '["duplicate of #", "duplicate of https://github.com/FreeTubeApp/FreeTube/issues/", "duplicate of https://github.com/FreeTubeApp/FreeTube/pulls/"]'
+          keywords: '["duplicate of #", "duplicate of https://github.com/IMAWAL/FreeTube/issues/", "duplicate of https://github.com/IMAWAL/FreeTube/pulls/"]'
           labels: '["U: duplicate"]'
           github-token: "${{ secrets.GITHUB_TOKEN }}"

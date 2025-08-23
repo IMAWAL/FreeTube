@@ -7,16 +7,20 @@
   "main": "./dist/main.js",
   "private": true,
   "author": {
-    "name": "FreeTube Team",
-    "email": "FreeTubeApp@protonmail.com",
-    "url": "https://github.com/FreeTubeApp/FreeTube"
+    "name": "IMAWAL (fork maintainer)",
+    "url": "https://github.com/IMAWAL/Freetube"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/FreeTubeApp/FreeTube.git"
+    "url": "git+https://github.com/IMAWAL/Freetube.git"
   },
+  "originalAuthor": {
+    "name": "FreeTube Team",
+    "url": "https://github.com/FreeTubeApp/Freetube"
+  },
+  "forkNote": "This is a fork of FreeTubeApp/Freetube. All original copyright and license notices are preserved per AGPL-3.0. See README for details.",
   "bugs": {
-    "url": "https://github.com/FreeTubeApp/FreeTube/issues"
+    "url": "https://github.com/IMAWAL/Freetube/issues"
   },
   "scripts": {
     "build": "run-s rebuild:electron patch-shaka pack build-release",

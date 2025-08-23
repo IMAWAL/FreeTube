@@ -6,10 +6,10 @@ FreeTube is an open source desktop YouTube player built with privacy in mind.
 Use YouTube without advertisements and prevent Google from tracking you with their cookies and JavaScript.
 Available for Windows (10 and later), Mac (macOS 11 and later) & Linux thanks to Electron.
 
-<p align="center"><a href="https://github.com/FreeTubeApp/FreeTube/releases">Download FreeTube</a></p>
+<p align="center"><a href="https://github.com/IMAWAL/Freetube/releases">Download FreeTube</a></p>
 <p align="center">
-  <a href="https://github.com/FreeTubeApp/FreeTube/actions/workflows/build.yml">
-    <img alt='Build status' src="https://github.com/FreeTubeApp/FreeTube/actions/workflows/build.yml/badge.svg?branch=development" />
+  <a href="https://github.com/IMAWAL/Freetube/actions/workflows/build.yml">
+    <img alt='Build status' src="https://github.com/IMAWAL/Freetube/actions/workflows/build.yml/badge.svg?branch=development" />
   </a>
   <a href="https://hosted.weblate.org/engage/free-tube/">
     <img src="https://hosted.weblate.org/widgets/free-tube/-/svg-badge.svg" alt="Translation status" />
@@ -17,14 +17,23 @@ Available for Windows (10 and later), Mac (macOS 11 and later) & Linux thanks to
 </p>
 
 <hr>
+
+---
+**Notice:**
+
+This repository (IMAWAL/Freetube) is a fork of [FreeTubeApp/Freetube](https://github.com/FreeTubeApp/Freetube), originally developed by the FreeTube Team. All original copyright, license, and attribution notices are preserved in accordance with the [GNU Affero General Public License v3.0](https://www.gnu.org/licenses/agpl-3.0.html).
+
+If you use, modify, or redistribute this fork, you must also comply with the AGPL-3.0 license. See the LICENSE file for details.
+
+---
 <p align="center"><a href="#screenshots">Screenshots</a> &bull; <a href="#how-does-it-work">How does it work?</a> &bull; <a href="#features">Features</a> &bull; <a href="#download-links">Download Links</a> &bull; <a href="#contributing">Contributing</a> &bull; <a href="#localization">Localization</a> &bull; <a href="#contact">Contact</a> &bull; <a href="#donate">Donate</a> &bull; <a href="#license">License</a></p>
-<p align="center"><a href="https://freetubeapp.io/">Website</a> &bull; <a href="https://blog.freetubeapp.io/">Blog</a> &bull; <a href="https://docs.freetubeapp.io/">Documentation</a> &bull; <a href="https://docs.freetubeapp.io/faq/">FAQ</a> &bull; <a href="https://github.com/FreeTubeApp/FreeTube/discussions">Discussions</a></p>
+<p align="center"><a href="https://freetubeapp.io/">Website</a> &bull; <a href="https://blog.freetubeapp.io/">Blog</a> &bull; <a href="https://docs.freetubeapp.io/">Documentation</a> &bull; <a href="https://docs.freetubeapp.io/faq/">FAQ</a> &bull; <a href="https://github.com/IMAWAL/Freetube/discussions">Discussions</a></p>
 <hr>
 
 > [!NOTE] 
 > FreeTube is currently in Beta. While it should work well for most users, there are still bugs and missing features that need to be addressed.
 >
-> If you have an idea or if you found a bug, please submit a [GitHub issue](https://github.com/FreeTubeApp/FreeTube/issues/new/choose) so that we can track it.  Please search [the existing issues](https://github.com/FreeTubeApp/FreeTube/issues) before submitting to prevent duplicates!
+> If you have an idea or if you found a bug, please submit a [GitHub issue](https://github.com/IMAWAL/Freetube/issues/new/choose) so that we can track it.  Please search [the existing issues](https://github.com/IMAWAL/Freetube/issues) before submitting to prevent duplicates!
 
 ## Screenshots
 <img src="https://i.imgur.com/zFgZUUV.png" width=300> <img src="https://i.imgur.com/9evYHgN.png" width=300> <img src="https://i.imgur.com/yT2UzPa.png" width=300> <img src="https://i.imgur.com/47zIEt4.png" width=300> <img src="https://i.imgur.com/hFB2fKC.png" width=300>
@@ -87,7 +96,7 @@ RedirectTube, doesn’t automatically open YouTube links in FreeTube. Instead, i
 > [!CAUTION]
 > FreeTube is only supported on Windows 10 and later, macOS 11 and above, and various Linux distributions. Installing it on unsupported systems may result in unexpected issues.
 
-* [GitHub Releases](https://github.com/FreeTubeApp/FreeTube/releases)
+* [GitHub Releases](https://github.com/IMAWAL/Freetube/releases)
 
 * [FreeTube Website](https://freetubeapp.io/#download)
 
@@ -97,7 +106,7 @@ RedirectTube, doesn’t automatically open YouTube links in FreeTube. Instead, i
 > [!WARNING]
 > Use these builds at your own risk. These are pre-release versions and are only intended for people that want to test changes early and are willing to accept that things could break from one build to another. 
 
-Builds are automatically created from changes to our development branch via [GitHub Actions](https://github.com/FreeTubeApp/FreeTube/actions?query=workflow%3ABuild).
+Builds are automatically created from changes to our development branch via [GitHub Actions](https://github.com/IMAWAL/Freetube/actions?query=workflow%3ABuild).
 
 The first build with a green check mark is the latest build.  
 
@@ -106,7 +115,7 @@ The first build with a green check mark is the latest build.
 
 ### Unofficial Downloads
 > [!WARNING]
-> These builds are maintained by the community. While they should be safe, download at your own risk. There may be issues with using these versus the official builds. Any issues specific with these builds should be sent to their respective maintainer. Make sure u always try an [official download](https://github.com/freetubeapp/freetube/#official-downloads) before reporting your issue to us!
+> These builds are maintained by the community. While they should be safe, download at your own risk. There may be issues with using these versus the official builds. Any issues specific with these builds should be sent to their respective maintainer. Make sure u always try an [official download](https://github.com/IMAWAL/Freetube/#official-downloads) before reporting your issue to us!
 
 * Arch User Repository (AUR): [Download](https://aur.archlinux.org/packages/freetube-bin/)
 
@@ -137,7 +146,7 @@ If you like to get your hands dirty and want to contribute, we would love to
 have your help.  Send a pull request and someone will review your code. 
 
 > [!IMPORTANT]
-> Please follow the [Contribution Guidelines](https://github.com/FreeTubeApp/FreeTube/blob/development/CONTRIBUTING.md) before sending your pull request.
+> Please follow the [Contribution Guidelines](https://github.com/IMAWAL/Freetube/blob/development/CONTRIBUTING.md) before sending your pull request.
 
 ## Localization
 <a href="https://hosted.weblate.org/engage/free-tube/">
@@ -149,7 +158,7 @@ We are actively looking for translations!  We use [Weblate](https://hosted.webla
 For the Linux Flatpak, the desktop entry comment string can be translated at our [Flatpak repository](https://github.com/flathub/io.freetubeapp.FreeTube/blob/master/io.freetubeapp.FreeTube.desktop).
 
 ## Contact
-If you ever have any questions, feel free to ask it on our [Discussions](https://github.com/FreeTubeApp/FreeTube/discussions) page.  Alternatively, you can email us at FreeTubeApp@protonmail.com or you can join our [Matrix Community](https://matrix.to/#/+freetube:matrix.org).  
+If you ever have any questions, feel free to ask it on our [Discussions](https://github.com/IMAWAL/Freetube/discussions) page.  Alternatively, you can email us at FreeTubeApp@protonmail.com or you can join our [Matrix Community](https://matrix.to/#/+freetube:matrix.org).  
 
 > [!IMPORTANT]
 > Don't forget to check out the [rules](https://docs.freetubeapp.io/community/matrix/) before joining.
