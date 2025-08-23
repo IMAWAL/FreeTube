@@ -246,7 +246,7 @@ export default defineComponent({
 
     checkForNewUpdates: function () {
       if (this.checkForUpdates) {
-        const requestUrl = 'https://api.github.com/repos/freetubeapp/freetube/releases?per_page=1'
+        const requestUrl = 'https://api.github.com/repos/IMAWAL/Freetube/releases?per_page=1'
 
         fetch(requestUrl)
           .then((response) => response.json())

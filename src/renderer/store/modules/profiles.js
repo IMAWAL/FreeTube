@@ -263,7 +263,7 @@ const mutations = {
       const profile = state.profileList.find(profile => profile._id === id)
 
       // use filter instead of splice in case the subscription appears multiple times
-      // https://github.com/FreeTubeApp/FreeTube/pull/3468#discussion_r1179290877
+      // https://github.com/IMAWAL/Freetube/pull/3468#discussion_r1179290877
       profile.subscriptions = profile.subscriptions.filter(channel => channel.id !== channelId)
     }
   },
