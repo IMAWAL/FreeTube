@@ -2,13 +2,14 @@
   "name": "freetube",
   "productName": "FreeTube",
   "description": "A private YouTube client",
-  "version": "0.23.8",
+  "version": "0.23.9-1",
   "license": "AGPL-3.0-or-later",
   "main": "./dist/main.js",
   "private": true,
   "author": {
     "name": "IMAWAL (fork maintainer)",
-    "url": "https://github.com/IMAWAL/Freetube"
+    "url": "https://github.com/IMAWAL/Freetube",
+    "email": "imawal@proton.me"
   },
   "repository": {
     "type": "git",
