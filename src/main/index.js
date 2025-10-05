@@ -50,6 +50,7 @@ Options:
 function runApp() {
   /** @type {Set<string>} */
   let ALLOWED_RENDERER_FILES
+  const htmlFullscreenWindowIds = new Set()
 
   if (process.env.NODE_ENV === 'production') {
     // __FREETUBE_ALLOWED_PATHS__ is replaced by the injectAllowedPaths.mjs script
@@ -815,7 +816,19 @@ function runApp() {
       }
     })
 
+    // Track when the window enters/leaves HTML fullscreen (e.g., video player)
+    newWindow.on('enter-html-full-screen', () => {
+      htmlFullscreenWindowIds.add(newWindow.id)
+    })
+
+    newWindow.on('leave-html-full-screen', () => {
+      htmlFullscreenWindowIds.delete(newWindow.id)
+    })
+
     newWindow.once('close', async () => {
+      // Returns true if the element existed in the set
+      const htmlFullscreen = htmlFullscreenWindowIds.delete(newWindow.id)
+
       if (BrowserWindow.getAllWindows().length !== 1) {
         return
       }
@@ -823,7 +836,8 @@ function runApp() {
       const value = {
         ...newWindow.getNormalBounds(),
         maximized: newWindow.isMaximized(),
-        fullScreen: newWindow.isFullScreen()
+        // Don't save the full screen state if it was triggered by an HTML API e.g. the video player
+        fullScreen: newWindow.isFullScreen() && !htmlFullscreen
       }
 
       await baseHandlers.settings._updateBounds(value)
