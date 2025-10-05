@@ -54,6 +54,9 @@ async function createInnertube({ withPlayer = false, location = undefined, safet
     user_agent: navigator.userAgent,
 
     retrieve_player: !!withPlayer,
+    // Temporary workaround for decipher issues: pin a known-good player id
+    // See: https://github.com/LuanRT/YouTube.js/issues/1043
+    player_id: withPlayer ? '0004de42' : undefined,
     location: location,
     enable_safety_mode: !!safetyMode,
     client_type: clientType,
@@ -344,12 +347,20 @@ export async function getLocalVideoInfo(id) {
   }
 
   if (info.streaming_data) {
-    decipherFormats(info.streaming_data.formats, webInnertube.session.player)
+    const hasDash = !!info.streaming_data.dash_manifest_url
 
-    const firstFormat = info.streaming_data.adaptive_formats[0]
+    // If DASH manifest is available, prefer it and skip decipher to avoid breaking URLs
+    if (!hasDash) {
+      // Progressive formats
+      if (Array.isArray(info.streaming_data.formats) && info.streaming_data.formats.length > 0) {
+        safeDecipherFormats(info.streaming_data.formats, webInnertube.session.player)
+      }
 
-    if (firstFormat.url || firstFormat.signature_cipher || firstFormat.cipher) {
-      decipherFormats(info.streaming_data.adaptive_formats, webInnertube.session.player)
+      // Adaptive formats (only if they look like they need deciphering)
+      const firstFormat = info.streaming_data.adaptive_formats?.[0]
+      if (firstFormat && (firstFormat.url || firstFormat.signature_cipher || firstFormat.cipher)) {
+        safeDecipherFormats(info.streaming_data.adaptive_formats, webInnertube.session.player)
+      }
     }
 
     if (info.streaming_data.dash_manifest_url) {
@@ -410,6 +421,20 @@ function decipherFormats(formats, player) {
     // toDash deciphers the format again, so if we overwrite the original URL,
     // it breaks because the n param would get deciphered twice and then be incorrect
     format.freeTubeUrl = format.decipher(player)
+  }
+}
+
+// Safe wrapper to avoid crashing when deciphering fails; falls back to direct URLs
+function safeDecipherFormats(formats, player) {
+  try {
+    decipherFormats(formats, player)
+  } catch (e) {
+    console.warn('Decipher failed, falling back to available URLs:', e)
+    for (const format of formats) {
+      if (!format.freeTubeUrl && format.url) {
+        format.freeTubeUrl = format.url
+      }
+    }
   }
 }
 
