@@ -25,6 +25,8 @@ This repository (IMAWAL/Freetube) is a fork of [FreeTubeApp/Freetube](https://gi
 
 If you use, modify, or redistribute this fork, you must also comply with the AGPL-3.0 license. See the LICENSE file for details.
 
+**Fork Difference:**
+Might contain fixes to restore functionality before a new official release is being made. Flatpak is also available [here](https://github.com/IMAWAL/io.freetubeapp.FreeTube) 
 ---
 <p align="center"><a href="#screenshots">Screenshots</a> &bull; <a href="#how-does-it-work">How does it work?</a> &bull; <a href="#features">Features</a> &bull; <a href="#download-links">Download Links</a> &bull; <a href="#contributing">Contributing</a> &bull; <a href="#localization">Localization</a> &bull; <a href="#contact">Contact</a> &bull; <a href="#donate">Donate</a> &bull; <a href="#license">License</a></p>
 <p align="center"><a href="https://freetubeapp.io/">Website</a> &bull; <a href="https://blog.freetubeapp.io/">Blog</a> &bull; <a href="https://docs.freetubeapp.io/">Documentation</a> &bull; <a href="https://docs.freetubeapp.io/faq/">FAQ</a> &bull; <a href="https://github.com/IMAWAL/Freetube/discussions">Discussions</a></p>
