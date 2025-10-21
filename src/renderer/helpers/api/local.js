@@ -1,4 +1,4 @@
-import { ClientType, Innertube, Misc, Mixins, Parser, UniversalCache, Utils, YT, YTNodes } from 'youtubei.js'
+import { ClientType, Innertube, Misc, Mixins, Parser, Platform, UniversalCache, Utils, YT, YTNodes } from 'youtubei.js'
 import Autolinker from 'autolinker'
 import { IpcChannels, SEARCH_CHAR_LIMIT } from '../../../constants'
 
@@ -19,6 +19,58 @@ const TRACKING_PARAM_NAMES = [
   'utm_term',
   'utm_content',
 ]
+
+if (process.env.SUPPORTS_LOCAL_API) {
+  Platform.shim.eval = (data, env) => {
+    return new Promise((resolve, reject) => {
+      const properties = []
+
+      if (env.n) {
+        properties.push(`n: exportedVars.nFunction("${env.n}")`)
+      }
+
+      if (env.sig) {
+        properties.push(`sig: exportedVars.sigFunction("${env.sig}")`)
+      }
+
+      // Triggers permission errors if we don't remove it (added by YouTube.js), as sessionStorage isn't accessible in sandboxed cross-origin iframes
+      const modifiedOutput = data.output.replace('const window = Object.assign({}, globalThis);', '')
+
+      const code = `${modifiedOutput}\nreturn {${properties.join(', ')}}`
+
+      // Generate a unique ID, as there may be multiple eval calls going on at the same time (e.g. DASH manifest generation)
+      const messageId = process.env.IS_ELECTRON || crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.floor(Math.random() * 10000)}`
+
+      if (process.env.IS_ELECTRON) {
+        const iframe = document.getElementById('sigFrame')
+
+        /** @param {MessageEvent} event */
+        const listener = (event) => {
+          if (event.source === iframe.contentWindow && typeof event.data === 'string') {
+            const data = JSON.parse(event.data)
+
+            if (data.id === messageId) {
+              window.removeEventListener('message', listener)
+
+              if (data.error) {
+                reject(data.error)
+              } else {
+                resolve(data.result)
+              }
+            }
+          }
+        }
+
+        window.addEventListener('message', listener)
+        iframe.contentWindow.postMessage(JSON.stringify({ id: messageId, code }), '*')
+      } else {
+        reject(new Error('Please setup the eval function for the n/sig deciphering'))
+      }
+    })
+  }
+}
 
 /**
  * Creates a lightweight Innertube instance, which is faster to create or
@@ -244,19 +296,18 @@ export async function getLocalSearchContinuation(continuationData) {
 export async function getLocalVideoInfo(id) {
   const webInnertube = await createInnertube({ withPlayer: true, generateSessionLocally: false })
 
-  // based on the videoId (added to the body of the /player request and to caption URLs)
+  // based on the videoId
   let contentPoToken
 
   if (process.env.IS_ELECTRON) {
     const { ipcRenderer } = require('electron')
 
     try {
-      ({ contentPoToken } = await ipcRenderer.invoke(
-        IpcChannels.GENERATE_PO_TOKENS,
+      contentPoToken = await ipcRenderer.invoke(
+        IpcChannels.GENERATE_PO_TOKEN,
         id,
-        webInnertube.session.context.client.visitorData,
         JSON.stringify(webInnertube.session.context)
-      ))
+      )
 
       webInnertube.session.player.po_token = contentPoToken
     } catch (error) {
@@ -345,20 +396,12 @@ export async function getLocalVideoInfo(id) {
   }
 
   if (info.streaming_data) {
-    const hasDash = !!info.streaming_data.dash_manifest_url
+    await decipherFormats(info.streaming_data.formats, webInnertube.session.player)
 
-    // If DASH manifest is available, prefer it and skip decipher to avoid breaking URLs
-    if (!hasDash) {
-      // Progressive formats
-      if (Array.isArray(info.streaming_data.formats) && info.streaming_data.formats.length > 0) {
-        safeDecipherFormats(info.streaming_data.formats, webInnertube.session.player)
-      }
+    const firstFormat = info.streaming_data.adaptive_formats[0]
 
-      // Adaptive formats (only if they look like they need deciphering)
-      const firstFormat = info.streaming_data.adaptive_formats?.[0]
-      if (firstFormat && (firstFormat.url || firstFormat.signature_cipher || firstFormat.cipher)) {
-        safeDecipherFormats(info.streaming_data.adaptive_formats, webInnertube.session.player)
-      }
+    if (firstFormat.url || firstFormat.signature_cipher || firstFormat.cipher) {
+      await decipherFormats(info.streaming_data.adaptive_formats, webInnertube.session.player)
     }
 
     if (info.streaming_data.dash_manifest_url) {
@@ -414,25 +457,11 @@ export async function getLocalComments(id) {
  * @param {Misc.Format[]} formats
  * @param {import('youtubei.js').Player} player
  */
-function decipherFormats(formats, player) {
+async function decipherFormats(formats, player) {
   for (const format of formats) {
     // toDash deciphers the format again, so if we overwrite the original URL,
     // it breaks because the n param would get deciphered twice and then be incorrect
-    format.freeTubeUrl = format.decipher(player)
-  }
-}
-
-// Safe wrapper to avoid crashing when deciphering fails; falls back to direct URLs
-function safeDecipherFormats(formats, player) {
-  try {
-    decipherFormats(formats, player)
-  } catch (e) {
-    console.warn('Decipher failed, falling back to available URLs:', e)
-    for (const format of formats) {
-      if (!format.freeTubeUrl && format.url) {
-        format.freeTubeUrl = format.url
-      }
-    }
+    format.freeTubeUrl = await format.decipher(player)
   }
 }
 
