@@ -50,7 +50,6 @@ Options:
 function runApp() {
   /** @type {Set<string>} */
   let ALLOWED_RENDERER_FILES
-  const htmlFullscreenWindowIds = new Set()
 
   if (process.env.NODE_ENV === 'production') {
     // __FREETUBE_ALLOWED_PATHS__ is replaced by the injectAllowedPaths.mjs script
@@ -816,19 +815,7 @@ function runApp() {
       }
     })
 
-    // Track when the window enters/leaves HTML fullscreen (e.g., video player)
-    newWindow.on('enter-html-full-screen', () => {
-      htmlFullscreenWindowIds.add(newWindow.id)
-    })
-
-    newWindow.on('leave-html-full-screen', () => {
-      htmlFullscreenWindowIds.delete(newWindow.id)
-    })
-
     newWindow.once('close', async () => {
-      // Returns true if the element existed in the set
-      const htmlFullscreen = htmlFullscreenWindowIds.delete(newWindow.id)
-
       if (BrowserWindow.getAllWindows().length !== 1) {
         return
       }
@@ -836,8 +823,7 @@ function runApp() {
       const value = {
         ...newWindow.getNormalBounds(),
         maximized: newWindow.isMaximized(),
-        // Don't save the full screen state if it was triggered by an HTML API e.g. the video player
-        fullScreen: newWindow.isFullScreen() && !htmlFullscreen
+        fullScreen: newWindow.isFullScreen()
       }
 
       await baseHandlers.settings._updateBounds(value)
@@ -1707,7 +1693,7 @@ function runApp() {
       .replace('freetube:', '')
 
     // fix for Qt URL, like `freetube://https//www.youtube.com/watch?v=...`
-    // For details see https://github.com/IMAWAL/Freetube/pull/3119
+    // For details see https://github.com/FreeTubeApp/FreeTube/pull/3119
     if (newArg.startsWith('https') && newArg.charAt(5) !== ':') {
       newArg = 'https:' + newArg.substring(5)
     }

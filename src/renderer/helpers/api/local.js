@@ -106,9 +106,6 @@ async function createInnertube({ withPlayer = false, location = undefined, safet
     user_agent: navigator.userAgent,
 
     retrieve_player: !!withPlayer,
-    // Temporary workaround for decipher issues: pin a known-good player id
-    // See: https://github.com/LuanRT/YouTube.js/issues/1043
-    player_id: withPlayer ? '0004de42' : undefined,
     location: location,
     enable_safety_mode: !!safetyMode,
     client_type: clientType,
@@ -1811,7 +1808,7 @@ export function parseLocalSubscriberCount(text) {
 export function parseLocalCommunityPosts(posts) {
   const foundIds = []
   // `posts` includes the SharedPost's attached post for some reason so we need to filter that out.
-  // see: https://github.com/IMAWAL/Freetube/issues/3252#issuecomment-1546675781
+  // see: https://github.com/FreeTubeApp/FreeTube/issues/3252#issuecomment-1546675781
   // we don't currently support SharedPost's so that is also filtered out
   for (const post of posts) {
     if (post.type === 'SharedPost') {
