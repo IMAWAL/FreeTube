@@ -1,14 +1,17 @@
 <template>
   <div
     v-if="showResult"
-    v-observe-visibility="firstScreen ? false : {
-      callback: onVisibilityChanged,
-      once: true,
+    v-observe-visibility="visible ? false : {
+      callback: onVisibilityChanged
     }"
     :class="{
       grid: layout === 'grid',
-      list: layout === 'list'
+      list: layout === 'list',
+      draggable: isDraggable,
+      draggedVideo: isVideoDragging && draggedVideo.videoId === data.videoId && draggedVideo.playlistItemId === data.playlistItemId,
     }"
+    :draggable="isDraggable"
+    v-on="isDraggable ? draggableEventHandlers : {}"
   >
     <template
       v-if="visible"
@@ -26,6 +29,8 @@
         :can-move-video-up="canMoveVideoUp"
         :can-move-video-down="canMoveVideoDown"
         :can-remove-from-playlist="canRemoveFromPlaylist"
+        :layout="layout"
+        :show-grab-bar="isDraggable && layout === 'grid'"
         @move-video-up="moveVideoUp"
         @move-video-down="moveVideoDown"
         @remove-from-playlist="removeFromPlaylist"
@@ -59,9 +64,11 @@
 <script setup>
 import { computed, ref } from 'vue'
 
+import { handleDragAndDrop } from '../../helpers/dragAndDrop'
+
 import FtListVideo from '../ft-list-video/ft-list-video.vue'
 import FtListChannel from '../FtListChannel/FtListChannel.vue'
-import FtListPlaylist from '../ft-list-playlist/ft-list-playlist.vue'
+import FtListPlaylist from '../FtListPlaylist/FtListPlaylist.vue'
 import FtCommunityPost from '../FtCommunityPost/FtCommunityPost.vue'
 import FtListHashtag from '../FtListHashtag/FtListHashtag.vue'
 
@@ -137,9 +144,36 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  draggedVideo: {
+    type: Object,
+    default: () => ({ videoId: null, playlistItemId: null }),
+  },
+  isSortOrderCustom: {
+    type: Boolean,
+    default: false,
+  },
+  isVideoDragging: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-const emit = defineEmits(['move-video-down', 'move-video-up', 'remove-from-playlist'])
+const emit = defineEmits(['move-dragged-video', 'move-video-down', 'move-video-up', 'remove-from-playlist', 'drag-video', 'drag-video-end'])
+
+const inUserPlaylist = props.playlistType === 'user'
+const isDraggable = computed(() => inUserPlaylist && props.isSortOrderCustom && (props.canMoveVideoUp || props.canMoveVideoDown))
+const { dragVideo, moveDraggedVideo, afterDrag } = handleDragAndDrop(emit)
+const draggableEventHandlers = {
+  dragstart: onDragVideo,
+  dragover: event => event.preventDefault(),
+  dragenter: () => {
+    if (props.isVideoDragging) {
+      moveDraggedVideo(videoData, props.draggedVideo)
+    }
+  },
+  dragend: afterDrag,
+  drop: event => event.preventDefault(),
+}
 
 /** @type {import('vue').ComputedRef<'video' | 'shortVideo' | 'channel' | 'playlist' | 'community'>} */
 const finalDataType = computed(() => {
@@ -173,7 +207,7 @@ const channelsHidden = computed(() => {
 /** @type {string[]} */
 const forbiddenTitles = computed(() => {
   if (!props.hideForbiddenTitles) { return [] }
-  return JSON.parse(store.getters.getForbiddenTitles)
+  return JSON.parse(store.getters.getForbiddenTitles.toLowerCase())
 })
 
 const showResult = computed(() => {
@@ -204,13 +238,16 @@ const showResult = computed(() => {
       return false
     }
 
-    if (channelsHidden.value.some(ch => ch.name === props.data.authorId) || channelsHidden.value.some(ch => ch.name === props.data.author)) {
+    const lowerCaseAuthor = props.data.author?.toLowerCase()
+
+    if (channelsHidden.value.some(ch => ch.name === props.data.authorId) || channelsHidden.value.some(ch => ch.name === props.data.author) || (forbiddenTitles.value.some((text) => lowerCaseAuthor.includes(text)))) {
       // hide videos by author
       return false
     }
 
     const lowerCaseTitle = props.data.title?.toLowerCase()
-    if (forbiddenTitles.value.some((text) => lowerCaseTitle.includes(text.toLowerCase()))) {
+
+    if (forbiddenTitles.value.some((text) => lowerCaseTitle.includes(text))) {
       return false
     }
   } else if (dataType === 'channel') {
@@ -224,14 +261,19 @@ const showResult = computed(() => {
       props.data.authorId,
     ]
 
-    if (attrsToCheck.some(a => a != null && channelsHidden.value.some(ch => ch.name === a))) {
+    const lowerCaseName = props.data.name?.toLowerCase()
+
+    if ((attrsToCheck.some(a => a != null && channelsHidden.value.some(ch => ch.name === a))) ||
+      (forbiddenTitles.value.some((text) => lowerCaseName.includes(text)))) {
       // hide channels by author
       return false
     }
   } else if (dataType === 'playlist') {
     const lowerCaseTitle = props.data.title?.toLowerCase()
+    const lowerCaseChannelName = props.data.channelName?.toLowerCase()
 
-    if (forbiddenTitles.value.some((text) => lowerCaseTitle.includes(text.toLowerCase()))) {
+    if ((forbiddenTitles.value.some((text) => lowerCaseTitle.includes(text))) ||
+      (forbiddenTitles.value.some((text) => lowerCaseChannelName.includes(text)))) {
       return false
     }
 
@@ -259,20 +301,50 @@ const visible = ref(props.firstScreen)
  * @param {boolean} isVisible
  */
 function onVisibilityChanged(isVisible) {
-  visible.value = isVisible
+  if (isVisible) {
+    visible.value = isVisible
+  }
 }
 
-function moveVideoUp() {
-  emit('move-video-up')
+/**
+ * @param {string} videoId
+ * @param {string} playlistItemId
+ */
+function moveVideoUp(videoId, playlistItemId) {
+  emit('move-video-up', videoId, playlistItemId)
 }
 
-function moveVideoDown() {
-  emit('move-video-down')
+/**
+ * @param {string} videoId
+ * @param {string} playlistItemId
+ */
+function moveVideoDown(videoId, playlistItemId) {
+  emit('move-video-down', videoId, playlistItemId)
 }
 
-function removeFromPlaylist() {
-  emit('remove-from-playlist')
+/**
+ * @param {string} videoId
+ * @param {string} playlistItemId
+ */
+function removeFromPlaylist(videoId, playlistItemId) {
+  emit('remove-from-playlist', videoId, playlistItemId)
 }
+
+function onDragVideo(event) {
+  // Only allow dragging via the drag bar
+  if (!event.target.classList.contains('draggable')) { return }
+
+  dragVideo(event, videoData)
+}
+
+/** @import { VideoData } from '../../helpers/dragAndDrop' */
+
+/** @type {VideoData} */
+const videoData = {
+  videoId: props.data.videoId,
+  playlistItemId: props.playlistItemId,
+}
+
 </script>
 
 <style scoped src="./FtListLazyWrapper.css" />

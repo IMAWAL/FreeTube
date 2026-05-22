@@ -9,13 +9,23 @@
     }"
   >
     <div
+      v-if="showGrabBar"
+      class="grabBar"
+    >
+      <font-awesome-icon
+        :icon="['fas', 'fa-bars']"
+      />
+    </div>
+    <div
       class="videoThumbnail"
+      draggable="true"
+      @dragstart="onDragStart"
     >
       <router-link
         class="thumbnailLink"
         tabindex="-1"
         :to="watchVideoRouterLink"
-        @click.native="handleWatchPageLinkClick"
+        @click="handleWatchPageLinkClick"
       >
         <img
           :src="thumbnail"
@@ -42,9 +52,15 @@
         theme="base"
         :padding="appearance === `watchPlaylistItem` ? 6 : 7"
         :size="appearance === `watchPlaylistItem` ? 12 : 16"
+        draggable="true"
         @click="handleExternalPlayer"
+        @dragstart="onDragStart"
       />
-      <span class="playlistIcons">
+      <span
+        class="playlistIcons"
+        draggable="true"
+        @dragstart="onDragStart"
+      >
         <ft-icon-button
           v-if="showPlaylists"
           :title="$t('User Playlists.Add to Playlist')"
@@ -109,13 +125,20 @@
         :style="{inlineSize: progressPercentage + '%'}"
       />
     </div>
-    <div class="info">
+    <div
+      class="info"
+      draggable="true"
+      @dragstart="onDragStart"
+    >
       <router-link
         class="title"
         :to="watchVideoRouterLink"
-        @click.native="handleWatchPageLinkClick"
+        @click="handleWatchPageLinkClick"
       >
-        <h3 class="h3Title">
+        <h3
+          class="h3Title"
+          dir="auto"
+        >
           {{ displayTitle }}
         </h3>
       </router-link>
@@ -123,19 +146,20 @@
         <router-link
           v-if="channelId !== null"
           class="channelName"
+          dir="auto"
           :to="`/channel/${channelId}`"
         >
-          <span>{{ channelName }}</span>
-        </router-link>
-        <span v-else-if="channelName !== null">
           {{ channelName }}
-        </span>
+        </router-link>
+        <bdi v-else-if="channelName !== null">
+          {{ channelName }}
+        </bdi>
         <span
           v-if="!isLive && !isUpcoming && !isPremium && !hideViews && viewCount != null"
           class="viewCount"
         >
           <template v-if="channelId !== null || channelName !== null"> • </template>
-          {{ $tc('Global.Counts.View Count', viewCount, {count: parsedViewCount}) }}
+          {{ $t('Global.Counts.View Count', {count: parsedViewCount}, viewCount) }}
         </span>
         <span
           v-if="uploadedTime !== '' && !isLive"
@@ -144,7 +168,7 @@
         <span
           v-if="isLive && !hideViews"
           class="viewCount"
-        > • {{ $tc('Global.Counts.Watching Count', viewCount, {count: parsedViewCount}) }}</span>
+        > • {{ $t('Global.Counts.Watching Count', {count: parsedViewCount}, viewCount) }}</span>
       </div>
       <div
         v-if="is4k || hasCaptions || is8k || isNew || isVr180 || isVr360 || is3D"
@@ -219,24 +243,31 @@
           :dropdown-options="dropdownOptions"
           @click="handleOptionsClick"
         />
-        <font-awesome-icon
+        <button
           v-if="deArrowChangedContent || deArrowTogglePinned"
           :title="deArrowToggleTitle"
-          :icon="['far', 'dot-circle']"
           class="optionsButton deArrowToggleButton"
           :class="{ alwaysVisible: deArrowTogglePinned }"
-          tabindex="0"
-          role="button"
           @click="toggleDeArrow"
-          @keydown.enter.prevent="toggleDeArrow"
-          @keydown.space.prevent="toggleDeArrow"
-        />
+        >
+          <font-awesome-icon
+            class="deArrowToggleIcon"
+            :icon="['far', 'dot-circle']"
+          />
+        </button>
       </div>
       <p
         v-if="description && effectiveListTypeIsList && appearance === 'result'"
+        v-safer-html="description"
         class="description"
-        v-html="description"
+        dir="auto"
       />
+      <div
+        v-if="effectiveListTypeIsList"
+        class="restArea"
+      >
+        &nbsp;
+      </div>
     </div>
   </div>
 </template>

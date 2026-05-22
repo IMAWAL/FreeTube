@@ -4,7 +4,7 @@
   >
     <FtListLazyWrapper
       v-for="(result, index) in data"
-      :key="`${dataType || result.type}-${result.videoId || result.playlistId || result.postId || result.id || result._id || result.authorId || result.title}-${index}-${result.lastUpdatedAt || 0}`"
+      :key="`${dataType || result.type}-${result.videoId || result.playlistId || result.postId || result.id || result._id || result.authorId || result.title}-${result.playlistItemId || index}-${result.lastUpdatedAt || 0}`"
       appearance="result"
       :data="result"
       :data-type="dataType || result.type"
@@ -22,9 +22,15 @@
       :playlist-id="playlistId"
       :playlist-type="playlistType"
       :playlist-item-id="result.playlistItemId"
-      @move-video-up="moveVideoUp(result.videoId, result.playlistItemId)"
-      @move-video-down="moveVideoDown(result.videoId, result.playlistItemId)"
-      @remove-from-playlist="removeFromPlaylist(result.videoId, result.playlistItemId)"
+      :dragged-video="draggedVideo"
+      :is-sort-order-custom="isSortOrderCustom"
+      :is-video-dragging="isVideoDragging"
+      @drag-video="dragVideo"
+      @move-dragged-video="moveDraggedVideo"
+      @drag-video-end="afterDrag"
+      @move-video-up="moveVideoUp"
+      @move-video-down="moveVideoDown"
+      @remove-from-playlist="removeFromPlaylist"
     />
   </FtAutoGrid>
 </template>
@@ -100,9 +106,21 @@ const props = defineProps({
     type: String,
     default: null
   },
+  draggedVideo: {
+    type: Object,
+    default: () => ({ videoId: null, playlistItemId: null }),
+  },
+  isSortOrderCustom: {
+    type: Boolean,
+    default: false,
+  },
+  isVideoDragging: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-const emit = defineEmits(['move-video-down', 'move-video-up', 'remove-from-playlist'])
+const emit = defineEmits(['move-dragged-video', 'move-video-down', 'move-video-up', 'remove-from-playlist', 'drag-video', 'drag-video-end'])
 
 /** @type {import('vue').ComputedRef<'grid' | 'list'>} */
 const listType = computed(() => {
@@ -137,6 +155,28 @@ function moveVideoDown(videoId, playlistItemId) {
 function removeFromPlaylist(videoId, playlistItemId) {
   emit('remove-from-playlist', videoId, playlistItemId)
 }
+
+/** @import { VideoData } from '../../helpers/dragAndDrop' */
+
+/**
+ * @param {VideoData} video
+ */
+function dragVideo(video) {
+  emit('drag-video', video)
+}
+
+/**
+ * @param {VideoData} video
+ * @param {VideoData} draggedVideo
+ */
+function moveDraggedVideo(video, draggedVideo) {
+  emit('move-dragged-video', video, draggedVideo)
+}
+
+function afterDrag() {
+  emit('drag-video-end')
+}
+
 </script>
 
 <style scoped src="./FtElementList.css" />

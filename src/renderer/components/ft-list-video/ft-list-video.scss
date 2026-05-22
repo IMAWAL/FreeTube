@@ -4,6 +4,28 @@
   outline: 3px solid var(--side-nav-hover-color);
 }
 
+.grabBar {
+  color: var(--tertiary-text-color);
+  cursor: grab;
+  text-align: center;
+  user-select: none;
+
+  // Space a bit from the thumbnail.
+  padding-block: 1em;
+}
+
+.draggable:not(.draggable:only-child):focus .grabBar,
+.draggable:not(.draggable:only-child):hover .grabBar {
+  display: revert;
+}
+
+// If touch screen device, always show grab bar.
+@media (hover: none) {
+  .draggable:not(.draggable:only-child) .grabBar {
+    display: revert;
+  }
+}
+
 .thumbnailImage {
   // Makes img element sized correctly before image loading starts
   aspect-ratio: 16/9 auto;
@@ -31,12 +53,13 @@
 .deArrowToggleButton {
   border-radius: 50%;
   cursor: pointer;
-  block-size: 1em;
-  inline-size: 1em;
   padding: 10px;
   font-size: 16px;
+  line-height: 1em;
   transition: background 0.15s ease-out;
+  background-color: transparent;
   color: var(--primary-color);
+  border-color: transparent;
 
   &:not(.disabled) {
     &:hover,
@@ -53,4 +76,8 @@
       filter: grayscale(1);
     }
   }
+}
+
+.deArrowToggleIcon {
+  inline-size: 1em;
 }

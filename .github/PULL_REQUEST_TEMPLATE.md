@@ -22,7 +22,7 @@
 
 ## Testing
 <!-- How can reviewers verify that the PR produces correct results? -->
-<!-- Please provide instructions so that others can ensure that your pull request would produce correct results. For examples see, https://github.com/IMAWAL/FreeTube/pull/5743, https://github.com/IMAWAL/FreeTube/pull/7349, https://github.com/IMAWAL/FreeTube/pull/5125, https://github.com/IMAWAL/FreeTube/pull/7338 -->
+<!-- Please provide instructions so that others can ensure that your pull request would produce correct results. For examples see, https://github.com/FreeTubeApp/FreeTube/pull/5743, https://github.com/FreeTubeApp/FreeTube/pull/7349, https://github.com/FreeTubeApp/FreeTube/pull/5125, https://github.com/FreeTubeApp/FreeTube/pull/7338 -->
 
 ## Desktop
 <!-- Please complete the following information-->
